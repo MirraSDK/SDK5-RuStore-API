@@ -1,0 +1,19 @@
+{
+    "name": "MirraGames.SDK.RuStore",
+    "rootNamespace": "MirraGames.SDK.RuStore",
+    "references": [],
+    "includePlatforms": [
+        "Android",
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_ANDROID"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
