@@ -1,7 +1,12 @@
 {
     "name": "MirraGames.SDK.RuStore",
     "rootNamespace": "MirraGames.SDK.RuStore",
-    "references": [],
+    "references": [
+        "MirraGames.SDK.Common",
+        "RuStoreCore",
+        "RuStorePay",
+        "RuStoreReview"
+    ],
     "includePlatforms": [
         "Android",
         "Editor"
