@@ -4,6 +4,8 @@ using RuStore.PayClient;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
+using Logger = MirraGames.SDK.Common.Logger;
 
 namespace MirraGames.SDK.RuStore {
 
@@ -42,12 +44,18 @@ namespace MirraGames.SDK.RuStore {
             isPaymentsAvailable = true;
 
             string[] productTags = ParseProductTags();
-            ProductId[] ids = Array.ConvertAll(productTags, p => new ProductId(p));
+
+            List<ProductId> productsIds = new();
+            foreach (string productTag in productTags) {
+                productsIds.Add(new ProductId(productTag));
+            }
 
             RuStorePayClient.Instance.GetProducts(
-                productsId: ids,
+                productsId: productsIds.ToArray(),
                 onFailure: (exception) => {
-                    Logger.CreateError(this, "GetProducts", exception);
+                    string exceptionJson = JsonUtility.ToJson(exception);
+                    Logger.CreateError(this, "GetProducts", exceptionJson);
+                    OnTaskCompleted(nameof(RuStorePayClient.Instance.GetProducts));
                 },
                 onSuccess: (products) => {
                     Logger.CreateText(this, "GetProducts", "onSuccess");
@@ -124,7 +132,7 @@ namespace MirraGames.SDK.RuStore {
                     string productTag = value.Trim();
                     if (!string.IsNullOrEmpty(productTag)) {
                         productsSet.Add(value);
-                        Logger.CreateText(this, "Add product", productTag);
+                        Logger.CreateText(this, $"Add product '{productTag}'");
                     }
                     else {
                         Logger.CreateError(this, "Invalid product tag found");
