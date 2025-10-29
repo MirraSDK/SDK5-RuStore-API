@@ -43,15 +43,14 @@ namespace MirraGames.SDK.RuStore {
         private void OnPaymentsAvailable() {
             isPaymentsAvailable = true;
 
-            string[] productTags = ParseProductTags();
+            StringArray productsArray = JsonUtility.FromJson<StringArray>(configuration.ProductsJson);
+            ProductId[] productIds = productsArray.Values.Select(tag => new ProductId(tag)).ToArray();
 
-            List<ProductId> productsIds = new();
-            foreach (string productTag in productTags) {
-                productsIds.Add(new ProductId(productTag));
-            }
+            string productIdsJson = JsonUtility.ToJson(productIds);
+            Logger.CreateText(this, "GetProducts", "productIds", productIdsJson);
 
             RuStorePayClient.Instance.GetProducts(
-                productsId: productsIds.ToArray(),
+                productsId: productIds,
                 onFailure: (exception) => {
                     string exceptionJson = JsonUtility.ToJson(exception);
                     Logger.CreateError(this, "GetProducts", exceptionJson);
@@ -65,6 +64,7 @@ namespace MirraGames.SDK.RuStore {
                         Logger.CreateText(this, "GetProducts", "product", productIdJson);
                         string productTag = product.productId.value;
                         int productPrice = (product.price != null) ? product.price.value : -1;
+                        productPrice = (int)(productPrice * 0.01f); // Convert from cents to units
                         string productCurrency = product.currency.value;
                         ProductData productData = new(productTag, productPrice, productCurrency);
                         Products.Add(productTag, productData);
@@ -123,30 +123,6 @@ namespace MirraGames.SDK.RuStore {
                     }
                 }
             );
-        }
-
-        private string[] ParseProductTags() {
-            string productTags = configuration.ProductTags;
-            Logger.CreateText(this, nameof(ParseProductTags), $"'{productTags}'");
-            try {
-                HashSet<string> splitSet = new(productTags.Split(','));
-                HashSet<string> productsSet = new();
-                foreach (string value in splitSet) {
-                    string productTag = value.Trim();
-                    if (!string.IsNullOrEmpty(productTag)) {
-                        productsSet.Add(value);
-                        Logger.CreateText(this, $"Add product '{productTag}'");
-                    }
-                    else {
-                        Logger.CreateError(this, "Invalid product tag found");
-                    }
-                }
-                return productsSet.ToArray();
-            }
-            catch (Exception exception) {
-                Logger.CreateError(this, exception);
-            }
-            return Array.Empty<string>();
         }
 
         protected override ProductData GetProductDataImpl(string productTag) {

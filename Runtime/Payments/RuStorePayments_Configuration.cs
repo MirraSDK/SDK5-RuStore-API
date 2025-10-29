@@ -8,14 +8,14 @@ namespace MirraGames.SDK.RuStore {
 
         public override string Name => nameof(RuStorePayments);
 
-        [field: SerializeField] public string ProductTags { get; private set; } = "";
+        [field: SerializeField] public string ProductsJson { get; private set; } = @"{ ""Values"": [""item1"", ""item2"", ""item3"", ""item4""] }";
 
         public override StringProperty[] GetStringProperties() {
             return new StringProperty[] {
                 new(
-                    nameof(ProductTags),
-                    getter: () => { return ProductTags; },
-                    setter: (value) => { ProductTags = value; }
+                    nameof(ProductsJson),
+                    getter: () => { return ProductsJson; },
+                    setter: (value) => { ProductsJson = value; }
                 )
             };
         }
