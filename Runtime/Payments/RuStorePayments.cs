@@ -58,8 +58,11 @@ namespace MirraGames.SDK.RuStore {
                     OnTaskCompleted(nameof(RuStorePayClient.Instance.GetProducts));
                 },
                 onSuccess: (products) => {
-                    Logger.CreateText(this, "GetProducts", "onSuccess");
+                    string productsJson = JsonUtility.ToJson(products);
+                    Logger.CreateText(this, "GetProducts", "onSuccess", products);
                     foreach (Product product in products) {
+                        string productIdJson = JsonUtility.ToJson(product.productId);
+                        Logger.CreateText(this, "GetProducts", "product", productIdJson);
                         string productTag = product.productId.value;
                         int productPrice = (product.price != null) ? product.price.value : -1;
                         string productCurrency = product.currency.value;
