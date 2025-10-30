@@ -1,10 +1,24 @@
 using MirraGames.SDK.Common;
 using RuStore.Review;
+using System;
 
 namespace MirraGames.SDK.RuStore {
 
     [Provider(typeof(IPlatformInteractions))]
     public class RuStorePlatformInteractions : CommonPlatformInteractions {
+
+        public RuStorePlatformInteractions(IEventDispatcher eventDispatcher) : base() {
+            eventDispatcher.Start += OnStart;
+        }
+
+        private void OnStart() {
+            try {
+                RuStoreReviewManager.Instance.Init();
+            }
+            catch (Exception exception) {
+                Logger.CreateError(this, nameof(OnStart), exception);
+            }
+        }
 
         protected override void RateGameImpl() {
             RuStoreReviewManager.Instance.RequestReviewFlow(
@@ -25,7 +39,9 @@ namespace MirraGames.SDK.RuStore {
             );
         }
 
-        protected override void ShareGameImpl(string messageText) { }
+        protected override void ShareGameImpl(string messageText) {
+            Logger.NotImplementedWarning(this, nameof(ShareGameImpl));
+        }
 
     }
 
