@@ -1,6 +1,6 @@
 {
   "name": "com.mirrasdk.rustore.api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "RuStore API for MirraSDK5",
   "unity": "2021.3",
   "documentationUrl": "",
@@ -8,7 +8,5 @@
   "author": {
     "name": "Roman Likhadievski",
     "url": "https://github.com/romanlee17"
-  },
-  "description": "",
-  "dependencies": {}
+  }
 }
