@@ -1,6 +1,8 @@
 using MirraGames.SDK.Common;
 using RuStore.Review;
 using System;
+using UnityEngine;
+using Logger = MirraGames.SDK.Common.Logger;
 
 namespace MirraGames.SDK.RuStore {
 
@@ -23,13 +25,15 @@ namespace MirraGames.SDK.RuStore {
         protected override void RateGameImpl() {
             RuStoreReviewManager.Instance.RequestReviewFlow(
                 onFailure: (error) => {
-                    Logger.CreateError(this, nameof(RateGameImpl), error);
+                    string errorJson = JsonUtility.ToJson(error);
+                    Logger.CreateError(this, nameof(RateGameImpl), errorJson);
                 },
                 onSuccess: () => {
                     Logger.CreateText(this, "RequestReviewFlow", "onSuccess");
                     RuStoreReviewManager.Instance.LaunchReviewFlow(
                         onFailure: (error) => {
-                            Logger.CreateError(this, nameof(RateGameImpl), error);
+                            string errorJson = JsonUtility.ToJson(error);
+                            Logger.CreateError(this, nameof(RateGameImpl), errorJson);
                         },
                         onSuccess: () => {
                             Logger.CreateText(this, "LaunchReviewFlow", "onSuccess");

@@ -1,6 +1,8 @@
 using MirraGames.SDK.Common;
 using RuStore.PayClient;
 using System;
+using UnityEngine;
+using Logger = MirraGames.SDK.Common.Logger;
 
 namespace MirraGames.SDK.RuStore {
 
@@ -16,14 +18,16 @@ namespace MirraGames.SDK.RuStore {
         private void Start() {
             RuStorePayClient.Instance.GetUserAuthorizationStatus(
                 onSuccess: (result) => {
-                    Logger.CreateText(this, "GetUserAuthorizationStatus", result);
+                    string resultJson = JsonUtility.ToJson(result);
+                    Logger.CreateText(this, "GetUserAuthorizationStatus", resultJson);
                     if (result == UserAuthorizationStatus.AUTHORIZED) {
                         isLoggedIn = true;
                     }
                     SetInitialized();
                 },
                 onFailure: (error) => {
-                    Logger.CreateError(this, "GetUserAuthorizationStatus", error);
+                    string errorJson = JsonUtility.ToJson(error);
+                    Logger.CreateError(this, "GetUserAuthorizationStatus", errorJson);
                     SetInitialized();
                 }
             );

@@ -83,7 +83,8 @@ namespace MirraGames.SDK.RuStore {
         private void GetPurchases(Action<string[]> onSuccess) {
             RuStorePayClient.Instance.GetPurchases(
                 onFailure: (error) => {
-                    Logger.CreateError(this, "GetPurchases", error);
+                    string errorJson = JsonUtility.ToJson(error);
+                    Logger.CreateError(this, "GetPurchases", errorJson);
                 },
                 onSuccess: (result) => {
                     List<string> purchases = new();
@@ -108,7 +109,8 @@ namespace MirraGames.SDK.RuStore {
         private void Start() {
             RuStorePayClient.Instance.GetPurchaseAvailability(
                 onFailure: (error) => {
-                    Logger.CreateError(this, "Payments not available", error);
+                    string errorJson = JsonUtility.ToJson(error);
+                    Logger.CreateError(this, "Payments not available", errorJson);
                     OnPaymentsNotAvailable();
                 },
                 onSuccess: (result) => {
@@ -118,7 +120,8 @@ namespace MirraGames.SDK.RuStore {
                         OnPaymentsAvailable();
                     }
                     else {
-                        Logger.CreateError(this, "Payments not available", result.cause);
+                        string resultJson = JsonUtility.ToJson(result);
+                        Logger.CreateError(this, "Payments not available", resultJson);
                         OnPaymentsNotAvailable();
                     }
                 }
@@ -138,10 +141,13 @@ namespace MirraGames.SDK.RuStore {
                 productId: new ProductId(productTag)
             );
             void onPaymentSuccess(ProductPurchaseResult result) {
+                string resultJson = JsonUtility.ToJson(result);
+                Logger.CreateText(this, nameof(onPaymentSuccess), productTag, resultJson);
                 onSuccess?.Invoke();
             }
             void onPaymentError(RuStoreError error) {
-                Logger.CreateError(this, nameof(onPaymentError), productTag, error);
+                string errorJson = JsonUtility.ToJson(error);
+                Logger.CreateError(this, nameof(onPaymentError), productTag, errorJson);
                 onError?.Invoke();
             }
             RuStorePayClient.Instance.Purchase(parameters, PreferredPurchaseType.ONE_STEP, onPaymentError, onPaymentSuccess);
