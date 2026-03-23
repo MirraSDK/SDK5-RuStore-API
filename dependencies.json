@@ -1,4 +1,7 @@
 {
+    "UnityPackages": [
+        "https://github.com/MirraSDK/SDK5-RuStore-API/raw/refs/heads/main/Dependencies/RuStoreSDKSettings.unitypackage"
+    ],
     "GitUrls": [],
     "TarballUrls": [
         "https://github.com/MirraSDK/SDK5-RuStore-API/raw/refs/heads/main/Dependencies/ru.rustore.core-10.0.0.tgz",
