@@ -1,0 +1,8 @@
+{
+    "GitUrls": [],
+    "TarballUrls": [
+        "https://github.com/MirraSDK/SDK5-RuStore-API/raw/refs/heads/main/Dependencies/ru.rustore.core-10.0.0.tgz",
+        "https://github.com/MirraSDK/SDK5-RuStore-API/raw/refs/heads/main/Dependencies/ru.rustore.pay-10.0.1.tgz",
+        "https://github.com/MirraSDK/SDK5-RuStore-API/raw/refs/heads/main/Dependencies/ru.rustore.review-10.0.0.tgz"
+    ]
+}
