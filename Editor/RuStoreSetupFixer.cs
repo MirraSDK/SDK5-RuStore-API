@@ -11,6 +11,7 @@ using Logger = MirraGames.SDK.Common.Logger;
 using PayClientManifestPatcher = RuStore.Editor.Manifest.PayClientManifestPatcher;
 using PayClientSettings = RuStore.Editor.PayClientSettings;
 using RuStoreModuleSettings = RuStore.Editor.RuStoreModuleSettings;
+using RuStoreSDKSettings = RuStore.Editor.RuStoreSDKSettings;
 #endif
 
 namespace MirraGames.SDK.RuStore.Editor {
@@ -23,6 +24,7 @@ namespace MirraGames.SDK.RuStore.Editor {
     internal static class RuStoreSetupFixer {
 
         public const string ManifestBackupPath = "Library/MirraSDK/RuStore/AndroidManifest.backup.xml";
+        public const string SettingsLibraryPath = RuStoreSetupValidator.AndroidPluginsFolder + "/RuStoreSDKSettings.androidlib";
 
         private const string UnityThemeSelector = "@style/UnityThemeSelector";
         private const string UnityActivityMetaData = "unityplayer.UnityActivity";
@@ -169,6 +171,14 @@ namespace MirraGames.SDK.RuStore.Editor {
                 }
                 appliedFixes.Add("Created the RuStore Pay settings asset: fill Console Application Id and Deeplink Scheme");
             }
+            // A settings asset created in this session holds null strings until Unity reloads it,
+            // and RuStore's own build step throws on a null value.
+            if (settings.consoleApplicationId == null || settings.deeplinkScheme == null) {
+                settings.consoleApplicationId ??= string.Empty;
+                settings.deeplinkScheme ??= string.Empty;
+                EditorUtility.SetDirty(settings);
+                AssetDatabase.SaveAssetIfDirty(settings);
+            }
             if (settings.unityMainActivityClass != RuStoreSetupValidator.ActivityClass) {
                 settings.unityMainActivityClass = RuStoreSetupValidator.ActivityClass;
                 EditorUtility.SetDirty(settings);
@@ -182,8 +192,29 @@ namespace MirraGames.SDK.RuStore.Editor {
             if (string.IsNullOrWhiteSpace(settings.consoleApplicationId) || string.IsNullOrWhiteSpace(settings.deeplinkScheme)) {
                 Selection.activeObject = settings;
             }
+            GenerateSettingsLibrary(appliedFixes);
 #endif
         }
+
+#if MIRRA_RUSTORE_PAY
+        // RuStore writes its settings into an Android library folder at the start of every build.
+        // Unity 2022.3 does not import a plugin folder that first appears during a build, and the build then fails
+        // on missing string resources. Creating the folder here, outside a build, avoids that.
+        private static void GenerateSettingsLibrary(List<string> appliedFixes) {
+            bool isNewLibrary = !Directory.Exists(SettingsLibraryPath);
+            try {
+                RuStoreSDKSettings.UpdateSettingsLibrary();
+                AssetDatabase.Refresh();
+            }
+            catch (Exception exception) {
+                Logger.CreateWarning(nameof(RuStoreSetupFixer), "RuStore could not write its settings library:", exception.Message);
+                return;
+            }
+            if (isNewLibrary && Directory.Exists(SettingsLibraryPath)) {
+                appliedFixes.Add($"Created {SettingsLibraryPath} with the RuStore settings");
+            }
+        }
+#endif
 
         // Template lines that name the retired Maven host sit in the blocks External Dependency Manager owns.
         // A forced resolve rewrites those blocks from the installed packages.
