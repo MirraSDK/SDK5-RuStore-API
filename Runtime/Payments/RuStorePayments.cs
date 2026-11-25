@@ -4,7 +4,6 @@ using RuStore;
 using RuStore.PayClient;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Logger = MirraGames.SDK.Common.Logger;
 
@@ -13,151 +12,193 @@ namespace MirraGames.SDK.RuStore {
     [Provider(typeof(IPayments))]
     public class RuStorePayments : CommonPayments {
 
+        // Startup asks the store three things. If it stays silent this long, the game starts without them.
+        private const float StartupTimeoutSeconds = 10f;
+
         private readonly RuStorePayments_Configuration configuration;
+        private readonly IEventDispatcher eventDispatcher;
+        private readonly Dictionary<string, ProductData> products = new();
+
+        private RuStoreWatchdog startup;
+        private int pendingStartupRequests;
+        private bool isPaymentsAvailable = false;
 
         public override bool IsPaymentsAvailable {
             get => isPaymentsAvailable;
         }
 
-        private Dictionary<string, ProductData> Products { get; } = new();
-
-        private HashSet<string> PendingTasks { get; } = new() {
-            nameof(RuStorePayClient.Instance.GetPurchaseAvailability),
-            nameof(RuStorePayClient.Instance.GetProducts),
-            nameof(RuStorePayClient.Instance.GetPurchases)
-        };
-
-        private bool isPaymentsAvailable = false;
-
         public RuStorePayments(RuStorePayments_Configuration configuration, IEventDispatcher eventDispatcher, IData data) : base(data) {
             this.configuration = configuration;
+            this.eventDispatcher = eventDispatcher;
+            Purchases = Array.Empty<string>();
             eventDispatcher.Start += Start;
         }
 
-        private void OnTaskCompleted(string taskName) {
-            PendingTasks.Remove(taskName);
-            if (PendingTasks.Count == 0) {
-                SetInitialized();
+        private void Start() {
+            startup = new RuStoreWatchdog(eventDispatcher, StartupTimeoutSeconds, SetInitialized, onTimeout: () => {
+                Logger.CreateWarning(this, "RuStore did not answer in time, starting with what is loaded so far");
+            });
+            try {
+                RuStorePayClient.Instance.GetPurchaseAvailability(
+                    onFailure: (error) => {
+                        Logger.CreateError(this, "Payments not available", Describe(error));
+                        startup.Complete();
+                    },
+                    onSuccess: (result) => {
+                        if (!result.isAvailable) {
+                            Logger.CreateWarning(this, "Payments not available", Describe(result.cause));
+                            startup.Complete();
+                            return;
+                        }
+                        Logger.CreateText(this, "Payments available");
+                        isPaymentsAvailable = true;
+                        LoadProductsAndPurchases();
+                    }
+                );
+            }
+            catch (Exception exception) {
+                Logger.CreateError(this, nameof(Start), exception);
+                startup.Complete();
             }
         }
 
-        private void OnPaymentsAvailable() {
-            isPaymentsAvailable = true;
+        // Both requests end startup together. Each one reports back on failure too, so neither can hold it up.
+        private void LoadProductsAndPurchases() {
+            pendingStartupRequests = 2;
+            RequestProducts(CompleteStartupRequest);
+            RequestPurchases((isRefreshed) => CompleteStartupRequest());
+        }
 
-            StringArray productsArray = JsonUtility.FromJson<StringArray>(configuration.ProductsJson);
-            ProductId[] productIds = productsArray.Values.Select(tag => new ProductId(tag)).ToArray();
+        private void CompleteStartupRequest() {
+            pendingStartupRequests--;
+            if (pendingStartupRequests <= 0) {
+                startup.Complete();
+            }
+        }
 
-            string productIdsJson = JsonUtility.ToJson(productIds);
-            Logger.CreateText(this, "GetProducts", "productIds", productIdsJson);
-
+        private void RequestProducts(Action onCompleted) {
+            ProductId[] productIds = ReadProductIds();
+            if (productIds.Length == 0) {
+                Logger.CreateWarning(this, "No product ids in", nameof(RuStorePayments_Configuration.ProductsJson));
+                onCompleted?.Invoke();
+                return;
+            }
             RuStorePayClient.Instance.GetProducts(
                 productsId: productIds,
-                onFailure: (exception) => {
-                    string exceptionJson = JsonUtility.ToJson(exception);
-                    Logger.CreateError(this, "GetProducts", exceptionJson);
-                    OnTaskCompleted(nameof(RuStorePayClient.Instance.GetProducts));
+                onFailure: (error) => {
+                    Logger.CreateError(this, nameof(RuStorePayClient.GetProducts), Describe(error));
+                    onCompleted?.Invoke();
                 },
-                onSuccess: (products) => {
-                    string productsJson = JsonUtility.ToJson(products);
-                    Logger.CreateText(this, "GetProducts", "onSuccess", products);
-                    foreach (Product product in products) {
-                        string productIdJson = JsonUtility.ToJson(product.productId);
-                        Logger.CreateText(this, "GetProducts", "product", productIdJson);
-                        string productTag = product.productId.value;
-                        int productPrice = (product.price != null) ? product.price.value : -1;
-                        productPrice = (int)(productPrice * 0.01f); // Convert from cents to units
-                        string productCurrency = product.currency.value;
-                        ProductData productData = new(productTag, productPrice, productCurrency);
-                        Products.Add(productTag, productData);
-                        Logger.CreateText(this, "GetProducts", productData);
+                onSuccess: (loadedProducts) => {
+                    foreach (Product product in loadedProducts) {
+                        string productTag = product.productId?.value;
+                        if (string.IsNullOrEmpty(productTag)) {
+                            continue;
+                        }
+                        float price = RuStorePurchaseRules.ToPriceFloat(product.price);
+                        string currency = product.currency?.value ?? string.Empty;
+                        ProductData productData = new(productTag, price, currency);
+                        products[productTag] = productData;
+                        Logger.CreateText(this, nameof(RuStorePayClient.GetProducts), productData);
                     }
-                    OnTaskCompleted(nameof(RuStorePayClient.Instance.GetProducts));
+                    onCompleted?.Invoke();
                 }
             );
-
-            GetPurchases((purchases) => {
-                Purchases = purchases;
-                OnTaskCompleted(nameof(RuStorePayClient.Instance.GetPurchases));
-            });
         }
 
-        private void GetPurchases(Action<string[]> onSuccess) {
+        // Replaces the purchase list with what the store lists now. Reports whether the store answered.
+        private void RequestPurchases(Action<bool> onCompleted) {
             RuStorePayClient.Instance.GetPurchases(
                 onFailure: (error) => {
-                    string errorJson = JsonUtility.ToJson(error);
-                    Logger.CreateError(this, "GetPurchases", errorJson);
+                    Logger.CreateError(this, nameof(RuStorePayClient.GetPurchases), Describe(error));
+                    onCompleted?.Invoke(false);
                 },
-                onSuccess: (result) => {
-                    List<string> purchases = new();
-                    result.ForEach(purchase => {
-                        if (purchase is ProductPurchase productPurchase) {
-                            purchases.Add(productPurchase.productId.value);
-                        }
-                        if (purchase is SubscriptionPurchase subscriptionPurchase) {
-                            // Subscriptions are not supported
-                        }
-                    });
-                    onSuccess?.Invoke(purchases.ToArray());
+                onSuccess: (storePurchases) => {
+                    Purchases = RuStorePurchaseRules.CollectProductTags(storePurchases);
+                    Logger.CreateText(this, nameof(RuStorePayClient.GetPurchases), "confirmed units:", Purchases.Length);
+                    onCompleted?.Invoke(true);
                 }
             );
         }
 
-        private void OnPaymentsNotAvailable() {
-            isPaymentsAvailable = false;
-            SetInitialized();
-        }
-
-        private void Start() {
-            RuStorePayClient.Instance.GetPurchaseAvailability(
-                onFailure: (error) => {
-                    string errorJson = JsonUtility.ToJson(error);
-                    Logger.CreateError(this, "Payments not available", errorJson);
-                    OnPaymentsNotAvailable();
-                },
-                onSuccess: (result) => {
-                    if (result.isAvailable) {
-                        Logger.CreateText(this, "Payments available");
-                        OnTaskCompleted(nameof(RuStorePayClient.Instance.GetPurchaseAvailability));
-                        OnPaymentsAvailable();
-                    }
-                    else {
-                        string resultJson = JsonUtility.ToJson(result);
-                        Logger.CreateError(this, "Payments not available", resultJson);
-                        OnPaymentsNotAvailable();
+        private ProductId[] ReadProductIds() {
+            List<ProductId> productIds = new();
+            try {
+                StringArray productsArray = JsonUtility.FromJson<StringArray>(configuration.ProductsJson);
+                if (productsArray?.Values == null) {
+                    return productIds.ToArray();
+                }
+                HashSet<string> seenTags = new();
+                foreach (string value in productsArray.Values) {
+                    string productTag = value?.Trim();
+                    if (!string.IsNullOrEmpty(productTag) && seenTags.Add(productTag)) {
+                        productIds.Add(new ProductId(productTag));
                     }
                 }
-            );
+            }
+            catch (Exception exception) {
+                Logger.CreateError(this, nameof(RuStorePayments_Configuration.ProductsJson), "is not valid JSON:", exception.Message);
+            }
+            return productIds.ToArray();
+        }
+
+        private void AddPurchasedUnits(string productTag, int quantity) {
+            string[] updatedPurchases = new string[Purchases.Length + quantity];
+            Array.Copy(Purchases, updatedPurchases, Purchases.Length);
+            for (int index = Purchases.Length; index < updatedPurchases.Length; index++) {
+                updatedPurchases[index] = productTag;
+            }
+            Purchases = updatedPurchases;
+        }
+
+        private static string Describe(RuStoreError error) {
+            return error == null ? "no details" : $"{error.GetType().Name}: {error.name} {error.description}";
         }
 
         protected override ProductData GetProductDataImpl(string productTag) {
-            return Products[productTag];
+            if (products.TryGetValue(productTag, out ProductData productData)) {
+                return productData;
+            }
+            // Never null: games read the price straight from the result.
+            Logger.CreateWarning(this, nameof(GetProductData), "unknown product", productTag);
+            return new ProductData(productTag, 0, string.Empty);
         }
 
         protected override bool IsAlreadyPurchasedImpl(string productTag) {
-            return Purchases.Contains(productTag);
+            return Array.IndexOf(Purchases, productTag) >= 0;
         }
 
         protected override void PurchaseImpl(string productTag, Action onSuccess, Action onError = null) {
             ProductPurchaseParams parameters = new(
                 productId: new ProductId(productTag)
             );
-            void onPaymentSuccess(ProductPurchaseResult result) {
-                string resultJson = JsonUtility.ToJson(result);
-                Logger.CreateText(this, nameof(onPaymentSuccess), productTag, resultJson);
-                onSuccess?.Invoke();
-            }
-            void onPaymentError(RuStoreError error) {
-                string errorJson = JsonUtility.ToJson(error);
-                Logger.CreateError(this, nameof(onPaymentError), productTag, errorJson);
-                onError?.Invoke();
-            }
-            RuStorePayClient.Instance.Purchase(parameters, PreferredPurchaseType.ONE_STEP, onPaymentError, onPaymentSuccess);
+            RuStorePayClient.Instance.Purchase(
+                parameters: parameters,
+                preferredPurchaseType: PreferredPurchaseType.ONE_STEP,
+                onFailure: (error) => {
+                    if (error is RuStorePaymentException.ProductPurchaseCancelled) {
+                        Logger.CreateText(this, nameof(Purchase), "cancelled by the player", productTag);
+                    }
+                    else {
+                        Logger.CreateError(this, nameof(Purchase), productTag, Describe(error));
+                    }
+                    onError?.Invoke();
+                },
+                onSuccess: (result) => {
+                    Logger.CreateText(this, nameof(Purchase), productTag, result);
+                    // Listed at once, so the product counts as bought before the next store refresh.
+                    AddPurchasedUnits(productTag, Math.Max(1, result.quantity?.value ?? 1));
+                    onSuccess?.Invoke();
+                }
+            );
         }
 
         protected override void RestorePurchasesImpl(Action<IRestoreData> onRestoreData) {
-            GetPurchases((purchases) => {
-                Purchases = purchases;
-                RestoreData restoreData = new(this, purchases);
+            RequestPurchases((isRefreshed) => {
+                if (!isRefreshed) {
+                    Logger.CreateWarning(this, nameof(RestorePurchases), "store list not refreshed, using the last known purchases");
+                }
+                RestoreData restoreData = new(this, Purchases);
                 onRestoreData?.Invoke(restoreData);
             });
         }
