@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using Logger = MirraGames.SDK.Common.Logger;
 
 namespace MirraGames.SDK.RuStore.Editor {
 
@@ -11,8 +12,9 @@ namespace MirraGames.SDK.RuStore.Editor {
     /// </summary>
     internal sealed class RuStoreBuildGuard : IPreprocessBuildWithReport {
 
-        // After RuStore's own build steps (0 and 10), so their generated files exist when the setup is checked.
-        public int callbackOrder => 1000;
+        // Before RuStore's own build steps (0 and 10). Those throw a bare NullReferenceException on a
+        // settings asset that was never filled in; checked first, the developer gets the report instead.
+        public int callbackOrder => -1000;
 
         public void OnPreprocessBuild(BuildReport report) {
             if (report.summary.platform != BuildTarget.Android) {
@@ -25,6 +27,7 @@ namespace MirraGames.SDK.RuStore.Editor {
             if (problems.Count > 0) {
                 throw new BuildFailedException(RuStoreSetupValidator.FormatReport(problems));
             }
+            Logger.CreateText(nameof(RuStoreBuildGuard), "RuStore setup verified");
         }
 
     }
