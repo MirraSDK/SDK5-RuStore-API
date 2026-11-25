@@ -1,6 +1,5 @@
 #if MIRRA_RUSTORE_PAY
 using MirraGames.SDK.Common;
-using RuStore;
 using RuStore.PayClient;
 using System;
 using System.Collections.Generic;
@@ -41,12 +40,12 @@ namespace MirraGames.SDK.RuStore {
             try {
                 RuStorePayClient.Instance.GetPurchaseAvailability(
                     onFailure: (error) => {
-                        Logger.CreateError(this, "Payments not available", Describe(error));
+                        Logger.CreateError(this, "Payments not available", RuStoreErrorText.Describe(error));
                         startup.Complete();
                     },
                     onSuccess: (result) => {
                         if (!result.isAvailable) {
-                            Logger.CreateWarning(this, "Payments not available", Describe(result.cause));
+                            Logger.CreateWarning(this, "Payments not available", RuStoreErrorText.Describe(result.cause));
                             startup.Complete();
                             return;
                         }
@@ -86,7 +85,7 @@ namespace MirraGames.SDK.RuStore {
             RuStorePayClient.Instance.GetProducts(
                 productsId: productIds,
                 onFailure: (error) => {
-                    Logger.CreateError(this, nameof(RuStorePayClient.GetProducts), Describe(error));
+                    Logger.CreateError(this, nameof(RuStorePayClient.GetProducts), RuStoreErrorText.Describe(error));
                     onCompleted?.Invoke();
                 },
                 onSuccess: (loadedProducts) => {
@@ -110,7 +109,7 @@ namespace MirraGames.SDK.RuStore {
         private void RequestPurchases(Action<bool> onCompleted) {
             RuStorePayClient.Instance.GetPurchases(
                 onFailure: (error) => {
-                    Logger.CreateError(this, nameof(RuStorePayClient.GetPurchases), Describe(error));
+                    Logger.CreateError(this, nameof(RuStorePayClient.GetPurchases), RuStoreErrorText.Describe(error));
                     onCompleted?.Invoke(false);
                 },
                 onSuccess: (storePurchases) => {
@@ -151,10 +150,6 @@ namespace MirraGames.SDK.RuStore {
             Purchases = updatedPurchases;
         }
 
-        private static string Describe(RuStoreError error) {
-            return error == null ? "no details" : $"{error.GetType().Name}: {error.name} {error.description}";
-        }
-
         protected override ProductData GetProductDataImpl(string productTag) {
             if (products.TryGetValue(productTag, out ProductData productData)) {
                 return productData;
@@ -180,7 +175,7 @@ namespace MirraGames.SDK.RuStore {
                         Logger.CreateText(this, nameof(Purchase), "cancelled by the player", productTag);
                     }
                     else {
-                        Logger.CreateError(this, nameof(Purchase), productTag, Describe(error));
+                        Logger.CreateError(this, nameof(Purchase), productTag, RuStoreErrorText.Describe(error));
                     }
                     onError?.Invoke();
                 },
