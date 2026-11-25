@@ -181,11 +181,17 @@ namespace MirraGames.SDK.RuStore {
                 },
                 onSuccess: (result) => {
                     Logger.CreateText(this, nameof(Purchase), productTag, result);
-                    // Listed at once, so the product counts as bought before the next store refresh.
-                    AddPurchasedUnits(productTag, Math.Max(1, result.quantity?.value ?? 1));
-                    onSuccess?.Invoke();
+                    CompletePurchase(productTag, Math.Max(1, result.quantity?.value ?? 1), onSuccess);
                 }
             );
+        }
+
+        private void CompletePurchase(string productTag, int quantity, Action onSuccess) {
+            // Listed at once, so the product counts as bought before the next store refresh.
+            AddPurchasedUnits(productTag, quantity);
+            // The game grants the product inside onSuccess. Running it through SupplyProduct records the grant
+            // in the save, so the next RestorePurchases does not hand the same unit out a second time.
+            SupplyProduct(productTag, onSuccess, true);
         }
 
         protected override void RestorePurchasesImpl(Action<IRestoreData> onRestoreData) {
