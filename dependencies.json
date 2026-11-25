@@ -1,11 +1,40 @@
 {
-    "UnityPackages": [
-        "https://github.com/MirraSDK/SDK5-RuStore-API/raw/refs/heads/main/Dependencies/RuStoreSDKSettings.unitypackage"
-    ],
+    "UnityPackages": [],
     "GitUrls": [],
-    "TarballUrls": [
-        "https://github.com/MirraSDK/SDK5-RuStore-API/raw/refs/heads/main/Dependencies/ru.rustore.core-10.0.0.tgz",
-        "https://github.com/MirraSDK/SDK5-RuStore-API/raw/refs/heads/main/Dependencies/ru.rustore.pay-10.0.1.tgz",
-        "https://github.com/MirraSDK/SDK5-RuStore-API/raw/refs/heads/main/Dependencies/ru.rustore.review-10.0.0.tgz"
+    "TarballUrls": [],
+    "ScopedRegistries": [
+        {
+            "Name": "RuStore Nexus",
+            "Url": "https://nexus-external.rustore.ru/repository/npm-unity-rustore-exposed/",
+            "Scopes": [
+                "ru.rustore"
+            ]
+        }
+    ],
+    "RegistryPackages": [
+        {
+            "Name": "ru.rustore.core",
+            "Version": "10.5.1"
+        },
+        {
+            "Name": "ru.rustore.pay",
+            "Version": "11.2.0"
+        },
+        {
+            "Name": "ru.rustore.review",
+            "Version": "10.5.2"
+        }
+    ],
+    "OptionalRegistryPackages": [
+        {
+            "Name": "ru.rustore.update",
+            "Version": "10.5.2",
+            "Label": "RuStore In-app Updates"
+        },
+        {
+            "Name": "ru.rustore.remoteconfig",
+            "Version": "10.5.2",
+            "Label": "RuStore Remote Config"
+        }
     ]
 }
