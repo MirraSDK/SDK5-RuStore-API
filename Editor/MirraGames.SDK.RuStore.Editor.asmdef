@@ -1,0 +1,28 @@
+{
+    "name": "MirraGames.SDK.RuStore.Editor",
+    "rootNamespace": "MirraGames.SDK.RuStore.Editor",
+    "references": [
+        "MirraGames.SDK.Common",
+        "MirraGames.SDK",
+        "MirraGames.SDK.Editor",
+        "RuStoreCore-Editor",
+        "RuStorePay-Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "ru.rustore.pay",
+            "expression": "11.2.0",
+            "define": "MIRRA_RUSTORE_PAY"
+        }
+    ],
+    "noEngineReferences": false
+}
