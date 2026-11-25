@@ -1,3 +1,4 @@
+#if MIRRA_RUSTORE_PAY
 using MirraGames.SDK.Common;
 using UnityEngine;
 
@@ -23,3 +24,4 @@ namespace MirraGames.SDK.RuStore {
     }
 
 }
+#endif
