@@ -7,7 +7,8 @@ namespace MirraGames.SDK.RuStore.Editor {
     internal static class RuStorePins {
 
         public const string MirraSdkPackage = "com.romanlee17.mirrasdk5";
-        public const string MirraSdkVersion = "5.2.5";
+        // 5.2.6 fixes MirraSDK.WaitForProviders, which could wait forever when the player account finished last.
+        public const string MirraSdkVersion = "5.2.6";
 
         public static readonly (string Name, string Version)[] RequiredPackages = {
             ("ru.rustore.core", "10.5.1"),

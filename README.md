@@ -20,7 +20,7 @@ A setup check stops an Android build of the RuStore configuration while somethin
 ### Requirements
 
 1. Unity 2022.3.38 or newer.
-2. MirraSDK5 5.2.5 or newer.
+2. MirraSDK5 5.2.6 or newer.
 3. External Dependency Manager for Unity.
 4. Android Minimum API Level 24 or higher.
 5. Application Entry Point set to Activity.
