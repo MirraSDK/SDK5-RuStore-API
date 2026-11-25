@@ -1,3 +1,4 @@
+#if MIRRA_RUSTORE_PAY
 using MirraGames.SDK.Common;
 using RuStore.PayClient;
 using System;
@@ -64,3 +65,4 @@ namespace MirraGames.SDK.RuStore {
     }
 
 }
+#endif

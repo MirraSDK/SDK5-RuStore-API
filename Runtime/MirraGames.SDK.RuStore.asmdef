@@ -5,7 +5,9 @@
         "MirraGames.SDK.Common",
         "RuStoreCore",
         "RuStorePay",
-        "RuStoreReview"
+        "RuStoreReview",
+        "RuStoreUpdate",
+        "RuStoreRemoteConfig"
     ],
     "includePlatforms": [
         "Android",
@@ -19,6 +21,27 @@
     "defineConstraints": [
         "UNITY_ANDROID"
     ],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "ru.rustore.pay",
+            "expression": "11.2.0",
+            "define": "MIRRA_RUSTORE_PAY"
+        },
+        {
+            "name": "ru.rustore.review",
+            "expression": "10.5.2",
+            "define": "MIRRA_RUSTORE_REVIEW"
+        },
+        {
+            "name": "ru.rustore.update",
+            "expression": "10.5.2",
+            "define": "MIRRA_RUSTORE_UPDATE"
+        },
+        {
+            "name": "ru.rustore.remoteconfig",
+            "expression": "10.5.2",
+            "define": "MIRRA_RUSTORE_REMOTECONFIG"
+        }
+    ],
     "noEngineReferences": false
 }

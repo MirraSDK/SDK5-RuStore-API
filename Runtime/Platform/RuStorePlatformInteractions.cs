@@ -1,3 +1,4 @@
+#if MIRRA_RUSTORE_REVIEW
 using MirraGames.SDK.Common;
 using RuStore.Review;
 using System;
@@ -50,3 +51,4 @@ namespace MirraGames.SDK.RuStore {
     }
 
 }
+#endif
