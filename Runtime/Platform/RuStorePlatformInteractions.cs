@@ -9,7 +9,10 @@ namespace MirraGames.SDK.RuStore {
     [Provider(typeof(IPlatformInteractions))]
     public class RuStorePlatformInteractions : CommonPlatformInteractions {
 
-        public RuStorePlatformInteractions(IEventDispatcher eventDispatcher) : base() {
+        private readonly RuStorePlatformInteractions_Configuration configuration;
+
+        public RuStorePlatformInteractions(RuStorePlatformInteractions_Configuration configuration, IEventDispatcher eventDispatcher) : base() {
+            this.configuration = configuration;
             eventDispatcher.Start += OnStart;
         }
 
@@ -22,6 +25,17 @@ namespace MirraGames.SDK.RuStore {
             catch (Exception exception) {
                 Logger.CreateError(this, nameof(OnStart), exception);
             }
+            CheckForUpdate();
+        }
+
+        // In-app updates have no MirraSDK interface of their own, so this provider, which every RuStore build creates, runs them.
+        private void CheckForUpdate() {
+            RuStoreUpdateMode updateMode = configuration.UpdateMode;
+#if MIRRA_RUSTORE_UPDATE
+            if (updateMode != RuStoreUpdateMode.Disabled) {
+                new RuStoreAppUpdater(updateMode).CheckOnce();
+            }
+#endif
         }
 
         protected override void RateGameImpl() {
