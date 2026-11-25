@@ -5,7 +5,7 @@
   "description": "MirraSDK5 providers for RuStore: payments (Pay 11.2.0), reviews (Review 10.5.2), and optional in-app updates and remote config (10.5.2).",
   "unity": "2022.3",
   "unityRelease": "38f1",
-  "documentationUrl": "",
+  "documentationUrl": "https://mirrasdk.github.io/Documentation/en/unity/mirrasdk/rustore",
   "changelogUrl": "",
   "author": {
     "name": "Roman Likhadievski",
